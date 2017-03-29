@@ -1,2 +1,4 @@
 node_modules
 yarn.lock
+run_dynamo_admin_8000.sh
+run_dynamo_admin_8070.sh
