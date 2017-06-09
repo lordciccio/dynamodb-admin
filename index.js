@@ -23,13 +23,23 @@ app.set('json spaces', 2)
 app.set('view engine', 'ejs')
 app.set('views', path.resolve(__dirname, 'views'))
 
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'key',
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'secret',
-  endpoint: process.env.DYNAMO_ENDPOINT || 'http://localhost:8000',
-  sslEnabled: process.env.DYNAMO_ENDPOINT && process.env.DYNAMO_ENDPOINT.indexOf('https://') === 0,
-  region: process.env.AWS_REGION || 'us-east-1'
-})
+const env = process.env;
+let awsConfig = {
+  region: env.AWS_REGION || 'us-east-1'
+};
+
+if(env.AWS_ACCESS_KEY_ID) {
+ awsConfig.accessKeyId = env.AWS_ACCESS_KEY_ID; 
+}
+if(env.AWS_SECRET_ACCESS_KEY) {
+ awsConfig.secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
+}
+if(env.DYNAMO_ENDPOINT) {
+  awsConfig.endpoint = env.DYNAMO_ENDPOINT;
+  awsConfig.sslEnabled = env.DYNAMO_ENDPOINT.indexOf('https://') === 0;
+}
+
+AWS.config.update(awsConfig);
 
 const dynamodb = new AWS.DynamoDB()
 const docClient = new AWS.DynamoDB.DocumentClient()
@@ -64,24 +74,44 @@ app.get('/create-table', (req, res) => {
 })
 
 app.post('/create-table', bodyParser.urlencoded({extended: false}), (req, res, next) => {
-  dynamodb.createTable({
-    TableName: req.body.TableName,
-    ProvisionedThroughput: {
-      ReadCapacityUnits: req.body.ReadCapacityUnits,
-      WriteCapacityUnits: req.body.WriteCapacityUnits
-    },
-    KeySchema: [{
-      AttributeName: 'id',
-      KeyType: 'HASH'
-    }],
-    AttributeDefinitions: [{
-      AttributeName: 'id',
-      AttributeType: 'S'
-    }]
-  }).promise().then((response) => {
-    res.redirect('/')
-  }).catch(next)
-})
+    let attributeDefinitions = [
+        {
+            AttributeName: req.body.HashAttributeName,
+            AttributeType: req.body.HashAttributeType,
+        }
+    ];
+
+    let keySchema = [
+        {
+            AttributeName: req.body.HashAttributeName,
+            KeyType: 'HASH',
+        }
+    ];
+
+    if (req.body.RangeAttributeName) {
+        attributeDefinitions.push({
+            AttributeName: req.body.RangeAttributeName,
+            AttributeType: req.body.RangeAttributeType,
+        });
+
+        keySchema.push({
+            AttributeName: req.body.RangeAttributeName,
+            KeyType: 'RANGE',
+        });
+    }
+
+    dynamodb.createTable({
+        TableName: req.body.TableName,
+        ProvisionedThroughput: {
+            ReadCapacityUnits: req.body.ReadCapacityUnits,
+            WriteCapacityUnits: req.body.WriteCapacityUnits,
+        },
+        KeySchema: keySchema,
+        AttributeDefinitions: attributeDefinitions,
+    }).promise().then((response) => {
+        res.redirect('/')
+    }).catch(next)
+});
 
 app.delete('/tables/:TableName', (req, res, next) => {
   const TableName = req.params.TableName
