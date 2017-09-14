@@ -1,11 +1,12 @@
 {
   "name": "dynamodb-admin",
-  "version": "1.12.0",
+  "version": "1.14.0",
   "description": "GUI for DynamoDB. Useful for local development.",
   "main": "index.js",
   "bin": "./bin/dynamodb-admin.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "bower install"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
     "es7-object-polyfill": "0.0.1",
     "express": "^4.14.0",
     "js-yaml": "^3.6.1",
+    "bower": "^1.8.0",
     "lodash": "^4.16.4"
   },
   "devDependencies": {
